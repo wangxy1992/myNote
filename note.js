@@ -1,6 +1,7 @@
 // 1:图片压缩上传
 // 2.微信分享
-
+// 3.判断访问终端
+// 4.通过node爬取数据
 
 // 一、图片压缩上传
 <input type="file" accept="image/*" class="info-file-none" ng-model="avatar.value"
@@ -183,8 +184,69 @@ wxShare: function () { //调用改函数时传的参数，以arguments的形式�
         }
     });
 },
+//三、判断访问终端
+var browser = {
+    versions: function() {
+        var u = navigator.userAgent,
+            app = navigator.appVersion;
+        return {
+            trident: u.indexOf('Trident') > -1, //IE内核
+            presto: u.indexOf('Presto') > -1, //opera内核
+            webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+            gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1, //火狐内核
+            mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+            ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+            android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+            iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+            iPad: u.indexOf('iPad') > -1, //是否iPad
+            webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+            weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+            qq: u.match(/\sQQ/i) == "qq", //是否QQ
+            weibo: u.match(/WeiBo/i) == "weibo", //是否微博
+        };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+};
 
+// 四、通过node爬取网站数据
+//首先通过npm下载三个模块:express,superagent,cheerio
+var express = require("express");
+var superagent = require("superagent")
+var cheerio = require("cheerio")
 
+//实例化express
+var app = express();
+//app.get是路由的方法,"./index"是url上的路径
+app.get("/index",function(req,res){
+//	这里调用了superagent的数据请求get方法
+    superagent.get("https://cnodejs.org/")
+        .end(function(err,cb){
+//		常规的错误处理
+            if (err){
+                return next(err)
+            }
+            // sres.text 里面存储着网页的 html 内容，将它传给 cheerio.load 之后
+            // 就可以得到一个实现了 jquery 接口的变量，我们习惯性地将它命名为 `$`
+            // 剩下就都是 jquery 的内容了
+            var $ = cheerio.load(cb.text);
+            var items = [];
+//		这里的'#topic_list .topic_title'是爬取的网站上面的标签类名,遍历这些类名获取里面的text内容
+            $('#topic_list .topic_title').each(function (idx, element) {
+//		将每个便签对象拿出来,添加到数组里面
+                var $element = $(element);
+                items.push({
+                    title: $element.attr('title'),
+                    href: $element.attr('href')
+                });
+            });
+//    渲染到页面
+            res.send(items)
+        })
+})
+//监听的端口
+app.listen(8000,function(){
+    console.log("index is listening")
+})
 
 
 
